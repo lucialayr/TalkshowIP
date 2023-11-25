@@ -8,17 +8,36 @@ library(plotly)
 
 df = read_csv("data/Daten.csv")
 
+add_plot_layout = function(fontsize = 15) {
+  theme_classic() %+replace%
+    theme(axis.title = element_text(size = fontsize),
+          axis.ticks = element_blank(),
+          legend.background = element_rect(fill='transparent', color = NA),
+          legend.box.background = element_rect(fill='transparent', color = NA),
+          panel.background = element_rect(fill = "transparent", colour = NA),  
+          plot.margin = margin(0, 0, 0, 0, "cm"),
+          plot.background = element_rect(fill = "transparent", colour = NA),
+          strip.background = element_rect(fill = "transparent", color = NA),
+          strip.text = element_text(size = fontsize),
+          text = element_text(size = fontsize))
+}
+
 plot1 = function(variable, df=df) {
   df1 = df %>%
     group_by(!!rlang::sym(variable)) %>%
     count() 
   
   p1 = ggplot() + theme_void() +
-      geom_bar(data = df1, alpha = .5, color = "black", stat = "identity",
+      geom_bar(data = df1, alpha = 1, color = "black", stat = "identity", width = .5,
                aes(x = !!rlang::sym(variable), y =n,  fill = !!rlang::sym(variable))) +
-      scico::scale_fill_scico_d(palette = "batlow", direction = 1) +
+      scico::scale_fill_scico_d(palette = "lapaz", direction = 1) +
+    scale_y_continuous(expand = c(0,0)) +
+    add_plot_layout(fontsize = 15) +
       theme(axis.text.x = element_text(size = 15, angle = 90),
             axis.text.y = element_text(size = 15),
+            axis.title.y = element_blank(),
+            axis.line.y = element_blank(),
+            panel.grid.major.y = element_line(color = "grey80"),
             legend.position = "None"
       )
   
@@ -34,13 +53,14 @@ plot2 = function(variable1, variable2, df) {
   
   
   (p2 = ggplot() + theme_void() + coord_equal() +
-    geom_line(data = df, position = position_jitter(width = .5, height = .5, seed = 123), linewidth = .75, alpha = .9, color = "black",
+    geom_line(data = df, position = position_jitter(width = .5, height = .5, seed = 123), linewidth = .3, alpha = .9, color = "grey20",
                aes(x = !!rlang::sym(variable1), y = !!rlang::sym(variable2), group = interaction(Name))) +
       geom_point(data = df, shape = 21,  position = position_jitter(width = .5, height = .5, seed = 123),  alpha = .9,
                  aes(x = !!rlang::sym(variable1), y = !!rlang::sym(variable2),  fill = !!rlang::sym(variable1), size = n)) +
       scale_size_continuous(breaks = c(0, 1, 2, 3, 4), limits = c(0,max(df$n))) +
      scico::scale_fill_scico_d(palette = "batlow", direction = 1) +
-      scico::scale_color_scico_d(palette = "batlow", direction = 1) +
+     scico::scale_color_scico_d(palette = "batlow", direction = 1) +
+      add_plot_layout(fontsize = 15) +
      theme(axis.text.x = element_text(size = 15, angle = 90),
            axis.text.y = element_text(size = 15),
            legend.position = "None"
@@ -67,11 +87,14 @@ plot3 = function(start = "2023-10-07", end = "2023-10-30", df) {
     geom_line(data = df, aes(x = Sunday + 1, y = n)) +
     geom_point(data = df, fill = "grey50", color = "black", shape = 21, position = "identity",
                aes(x = Sunday + 1, y = n, size = n)) +
+    add_plot_layout(fontsize = 15) +
     scale_y_continuous(limits = c(0, max(df$n))) +
     scale_size_continuous(limits = c(1, max(df$n)), range = c(1, max(df$n)*2)) +
     theme(axis.text.x = element_text(size = 15, angle = 90),
           axis.text.y = element_text(size = 15),
-          axis.title = element_blank(),
+          axis.title.y = element_blank(),
+          axis.line.y = element_blank(),
+          panel.grid.major.y = element_line(color = "grey80"),
           legend.position = "None"
     )
   
@@ -88,24 +111,38 @@ plot3 = function(start = "2023-10-07", end = "2023-10-30", df) {
 
 
 # Define UI ----
-ui <- fluidPage(theme = shinytheme("flatly"),
+ui <- fluidPage(#theme = shinytheme("flatly"),
+                tags$head(
+                  tags$style(HTML("body {
+                                   background-color: #f9f6ee; /* Set your desired background color */
+                                   }
+                                    #p1_input, .selectize-control.single .selectize-input {
+                                    background-color: #f5fffa;
+                                    }
+                                    .well {
+                                    border: .5px solid black;
+                                    border-radius: 2px;
+                                    border-shadow: none;
+                                    }
+      }
+    "))),
+                  
+    titlePanel("Wer sitzt in deutschen Talkshows zum Nahost-Konflikt?"),
   
-  titlePanel("Wer sitzt in deutschen Talkshows zum Nahost-Konflikt?"),
   
-  
-  sidebarLayout(
-    sidebarPanel(selectInput("p1_input", h4("Kategorie Auswählen"), 
-                             choices = list("Profession", "Nationalität",
-                                            "Perspektive_Identität", "Geschlecht"), selected = 1)),
-    mainPanel(h3(textOutput("t1")),
-              plotOutput("p1"))
+    sidebarLayout(
+      sidebarPanel(selectInput("p1_input", h4("Kategorie auswählen"), 
+                               choices = list("Profession", "Nationalität",
+                                              "Perspektive_Identität", "Geschlecht"), selected = 1)),
+      mainPanel(h3(textOutput("t1")),
+                plotOutput("p1"))
   ),
   
   sidebarLayout(
-    sidebarPanel(selectInput("p2_input1", h4("Kategorie Auswählen"), 
+    sidebarPanel(selectInput("p2_input1", h4("Kategorie auswählen"), 
                              choices = list("Profession", "Nationalität",
                                             "Perspektive_Identität", "Geschlecht"), selected = 1),
-                 selectInput("p2_input2", h4("Kategorie Auswählen"), 
+                 selectInput("p2_input2", h4("Kategorie auswählen"), 
                              choices = list("Profession", "Nationalität",
                                             "Perspektive_Identität", "Geschlecht"), selected = 1)),
     mainPanel(h3(textOutput("t2")),
@@ -127,18 +164,18 @@ server <- function(input, output) {
   output$t1 = renderText(paste0(input$p1_input, " der Gäste"))
   output$p1 = renderPlot({
     plot1(variable = input$p1_input, df)
-  })
+  }, bg="transparent")
   
   output$t2 = renderText(paste0(input$p2_input1, " vs. ", input$p2_input2,  " der Gäste"))
   output$p2 = renderPlot({
     plot2(variable1 = input$p2_input1, variable2 = input$p2_input2,  df)
-  })
+  }, bg="transparent")
   
   
   output$t3 = renderText(paste0("Anzahl der Runden pro Woche"))
   output$p3 = renderPlot({
     plot3(start= input$p3_input[1], end = input$p3_input[2],  df)
-  })
+  }, bg="transparent")
 }
 
 # Run the app ----
