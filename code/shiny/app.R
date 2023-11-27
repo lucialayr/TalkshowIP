@@ -68,13 +68,13 @@ plot1 = function(variable, df=df, thresh = 1) {
   return(p1)
 }
 
-plot2 = function(variable1, variable2, df) {
+plot2 = function(variable1, variable2, df, thresh = 2) {
   
-  df01 = cutoff(df, variable1)
+  df01 = cutoff(df, variable1, thresh = thresh)
   
   andere1 = df01[df01$indicator == "andere", ][[variable1]]
   
-  df02 = cutoff(df, variable2)
+  df02 = cutoff(df, variable2, thresh = thresh)
   
   andere2 = df02[df02$indicator == "andere", ][[variable2]]
   
@@ -85,26 +85,36 @@ plot2 = function(variable1, variable2, df) {
                                               "andere", !!rlang::sym(variable2))) %>%
     group_by(across(c(-Datum, -Titel, -Sendung))) %>%
     count() %>%
-    mutate(n = as.integer(n))
+    mutate(n = as.integer(n)) %>%
+    ungroup %>%
+    select(n, Name, !!rlang::sym(variable1), !!rlang::sym(variable2)) %>%
+    distinct() 
   
+  grid = df %>%
+    select(!!rlang::sym(variable1), !!rlang::sym(variable2))
   
-  (p2 = ggplot() + theme_void() + coord_equal() +
-    geom_tile(data = df2, aes(x = !!rlang::sym(variable1), y = !!rlang::sym(variable2), fill = NA, colour = 'black'), linetyp = "dotted") +
-    geom_line(data = df2, position = position_jitter(width = .5, height = .5, seed = 123), linewidth = .3, alpha = .9, color = "grey20",
-               aes(x = !!rlang::sym(variable1), y = !!rlang::sym(variable2), group = interaction(Name))) +
-    geom_point(data = df2, shape = 21,  position = position_jitter(width = .5, height = .5, seed = 123),  alpha = .9,
-                 aes(x = !!rlang::sym(variable1), y = !!rlang::sym(variable2),  fill = !!rlang::sym(variable1), size = n)) +
+  v1 = unique(df01[,3]) %>% pull()
+  v2 = unique(df02[,3]) %>% pull()
+  
+  grid = expand.grid(v1, v2) 
+  
+  (p2 = ggplot() + theme_void() + 
+    geom_tile(data = grid, aes(x = Var1, y = Var2, fill = NA, colour = 'grey80'), alpha = .3, linewidth = .05) +
+    geom_line(data = df2, position = position_jitter(width = .4, height = .4, seed = 123), linewidth = .3, alpha = .9, color = "grey0",
+               aes(x = !!rlang::sym(variable1), y = !!rlang::sym(variable2), group = Name)) +
+    geom_point(data = df2, shape = 21,  position = position_jitter(width = .4, height = .4, seed = 123),  alpha = .9,
+                 aes(x = !!rlang::sym(variable1), y = !!rlang::sym(variable2),  fill = !!rlang::sym(variable1), size = n, text = Name)) +
     scale_size_continuous(breaks = c(0, 1, 2, 3, 4), limits = c(0,max(df2$n))) +
     scico::scale_fill_scico_d(palette = "batlow", direction = 1) +
-    scico::scale_color_scico_d(palette = "batlow", direction = 1) +
-      scale_x_discrete(expand = c(0,0)) +
+    scale_x_discrete(expand = c(0,0), name = variable1) +
+    scale_y_discrete(expand = c(0,0), name = variable2) +
     add_plot_layout(fontsize = 15) +
     theme(axis.text.x = element_text(size = 15, angle = 90),
            axis.text.y = element_text(size = 15),
            legend.position = "None"
      ))
   
-   return(p2)
+  return(p2)
 }
 
 plot3 = function(start = "2023-10-07", end = "2023-10-30", df) {
@@ -184,7 +194,7 @@ ui <- fluidPage(#theme = shinytheme("flatly"),
                              choices = list("Profession", "Nationalität",
                                             "Perspektive_Identität", "Geschlecht"), selected = 1)),
     mainPanel(h3(textOutput("t2")),
-              plotOutput("p2"))
+              plotlyOutput("p2"))
   ),
   
   sidebarLayout(
@@ -208,9 +218,13 @@ server <- function(input, output) {
   })
   
   output$t2 = renderText(paste0(input$p2_input1, " vs. ", input$p2_input2,  " der Gäste"))
-  output$p2 = renderPlot({
-    plot2(variable1 = input$p2_input1, variable2 = input$p2_input2,  df)
-  }, bg="transparent")
+  output$p2 = renderPlotly({
+    gg = plot2(variable1 = input$p2_input1, variable2 = input$p2_input2,  df)
+    ggplotly(gg, tooltip = "text")  %>%
+      layout(showlegend = FALSE, aspectratio = list(x = 2, y = 2),
+             xaxis = list(dtick = 2, rangemode = "tozero"), yaxis = list(dtick = 2, rangemode = "tozero")) %>%
+      config(displayModeBar = F)# Remove the "plotly" bar
+  })
   
   
   output$t3 = renderText(paste0("Anzahl der Runden pro Woche"))

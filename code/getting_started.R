@@ -1,5 +1,3 @@
-setwd("~//dataviz/TalkshowIP")
-
 install.packages("tidyverse")
 install.packages("shiny")
 install.packages("plotly")
@@ -11,6 +9,8 @@ library(shinythemes)
 library(tidyverse)
 library(plotly)
 library(scico)
+
+setwd("~//dataviz/TalkshowIP")
 
 df = read_csv("code/shiny/data/Daten.csv")
 
