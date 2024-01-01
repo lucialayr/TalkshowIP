@@ -12,7 +12,7 @@ library(scico)
 
 setwd("~//dataviz/TalkshowIP")
 
-df = read_csv("code/shiny/data/Daten.csv")
+df = read_csv("shiny/data/data.csv")
 
-runApp("code/shiny")
+runApp("shiny")
 

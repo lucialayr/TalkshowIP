@@ -6,16 +6,18 @@ library(lubridate)
 library(plotly)
 
 
-df = read_csv("data/Daten.csv")
+df = read_csv("data/data.csv")
 
 colorscheme = "lapaz"
 
 cutoff = function(df, variable, thresh = 1) {
   df0 = df %>%
+    select(!!rlang::sym(variable), Name, Datum) %>%
+    unique() %>%
     group_by(!!rlang::sym(variable)) %>%
     count() %>%
     mutate(indicator = case_when(!!rlang::sym(variable) %in% c("deutsch", "israelisch", 
-                                                               "jüdisch", "palestinänsisch") ~ !!rlang::sym(variable),
+                                                               "jüdisch", "palästinensisch") ~ !!rlang::sym(variable),
                                 n > thresh ~ !!rlang::sym(variable),
                                  TRUE ~ "andere")) 
   return(df0)
@@ -36,17 +38,19 @@ add_plot_layout = function(fontsize = 15, background = '#f9f6ee') {
           text = element_text(size = fontsize))
 }
 
-plot1 = function(variable, df=df, thresh = 1) {
+plot1 = function(variable, df=df, thresh = 2) {
   df0 = cutoff(df, variable, thresh)
   
   label_andere = df0 %>%
     filter(n <= thresh) %>%
-    mutate(label = paste(!!rlang::sym(variable), ": ", n, " Auftritte<br>")) %>%
+    mutate(label = paste0(!!rlang::sym(variable), ": ", n, " Auftritte<br>")) %>%
     ungroup() 
   
   label = paste(label_andere$label, collapse = " ")
   
   df1 = full_join(df, df0) %>%
+    select(!!rlang::sym(variable), Name, Datum, indicator) %>%
+    unique() %>%
     group_by(indicator) %>%
     count() %>%
     mutate(text = if_else(indicator == "andere", as.character(label), paste0(as.character(indicator), ": ", n, " Auftritte")))
@@ -58,7 +62,7 @@ plot1 = function(variable, df=df, thresh = 1) {
     scale_y_continuous(expand = c(0,0)) +
     scale_x_discrete(name = "") + 
     add_plot_layout(fontsize = 15) +
-      theme(axis.text.x = element_text(size = 15),
+      theme(axis.text.x = element_text(size = 15, angle = 90),
             axis.text.y = element_text(size = 15),
             axis.title.y = element_blank(),
             axis.line.y = element_blank(),
@@ -111,16 +115,18 @@ plot2 = function(variable1, variable2, df, thresh = 2) {
     scale_y_discrete(expand = c(0,0), name = variable2) +
     add_plot_layout(fontsize = 15) +
     theme(axis.text.x = element_text(size = 15, angle = 90),
-           axis.text.y = element_text(size = 15),
+          axis.text.y = element_text(size = 15),
            legend.position = "None"
      ))
   
   return(p2)
 }
 
-plot3 = function(start = "2023-10-07", end = "2023-11-30", df, variable, thresh = 2) {
+plot3 = function(start, end, df, variable, thresh = 2) {
   
   print(start)
+  
+  if (variable %in% c("Nationalität", "Perspektive_Identität")) thresh = thresh else thresh = 0
   # area plot needs a second dataframe, where everz guest is 1/no guests in that specific show so that y axis is the same
   # dots should give info of shows and when and which guests.
   
@@ -142,7 +148,7 @@ plot3 = function(start = "2023-10-07", end = "2023-11-30", df, variable, thresh 
     group_by(!!rlang::sym(variable), Week) %>%
     count() %>%
     mutate(indicator = case_when(!!rlang::sym(variable) %in% c("deutsch", "israelisch", 
-                                                               "jüdisch", "palestinänsisch") ~ !!rlang::sym(variable),
+                                                               "jüdisch", "palästinensisch") ~ !!rlang::sym(variable),
                                  n > thresh ~ !!rlang::sym(variable),
                                  TRUE ~ "andere")) 
   
@@ -156,7 +162,7 @@ plot3 = function(start = "2023-10-07", end = "2023-11-30", df, variable, thresh 
     group_by(Week, Sunday, !!rlang::sym(variable)) %>%
     count(name = "variable_per_week") %>%
     mutate(indicator = case_when(!!rlang::sym(variable) %in% c("deutsch", "israelisch", 
-                                                               "jüdisch", "palestinänsisch",
+                                                               "jüdisch", "palästinensisch",
                                                                unique(df$Profession)) ~ !!rlang::sym(variable),
                                  variable_per_week > thresh ~ !!rlang::sym(variable),
                                  TRUE ~ "andere")) %>%
@@ -176,7 +182,7 @@ plot3 = function(start = "2023-10-07", end = "2023-11-30", df, variable, thresh 
     left_join(df_area) %>%
     mutate(share = replace_na(share, 0))
     
-  ggplot() + theme_void() +
+  ggplot() + theme_void() + 
     geom_area(data = all_comb, aes(x = Sunday + 1, y = share, fill = indicator), color = "black", alpha = 1) +
     geom_line(data = df_date, aes(x = Sunday + 1, y = n)) +
     #geom_point(data = df_date, fill = "grey50", color = "black", shape = 21, position = "identity",
@@ -192,14 +198,6 @@ plot3 = function(start = "2023-10-07", end = "2023-11-30", df, variable, thresh 
           axis.line.y = element_blank(),
           panel.grid.major.y = element_line(color = "grey80")
     )
-  
-  #get date in correct format
-  #select date range
-  #plot plot
-
-  
-  
-  
 }
 
 
@@ -221,7 +219,14 @@ ui <- fluidPage(#theme = shinytheme("flatly"),
       }
     ")))),
                   
-    titlePanel("Wer sitzt in deutschen Talkshows zum Nahost-Konflikt?"),
+    titlePanel( "Wer sitzt in deutschen Talkshows zu Israel und Palästina?", 
+                p("p creates a paragraph of text.")
+    ),
+    p("Für diese Analyse wurden alle Sendungen der Format 'Maybrit Illner', 'Anne Will' und 'Markus Lanz' 
+                    seit dem 7. Oktober berücksichtigt, die sich mit Israel und Palästina beschäftigten.
+                    Die Charakterisierung wurde von mir vorgenommen. Wenn Sie einen Fehler entdecken, 
+                    oder sonstiges Feedback haben, schreiben Sie mir bitte an lucialayr@gmail.com", 
+      style = "text-align: justify; font-style: italic;"),
   
   
     sidebarLayout(
@@ -250,7 +255,9 @@ ui <- fluidPage(#theme = shinytheme("flatly"),
                                             "Perspektive_Identität", "Geschlecht"), selected = 2)),
     mainPanel(h3(textOutput("t3")), 
               plotlyOutput("p3"))
-  )
+  ),
+  
+ 
   
   
 )
