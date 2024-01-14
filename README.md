@@ -1,4 +1,6 @@
-This is the code the following shiny app: https://lucialayritz.shinyapps.io/TalkshowsIP/
+# Talksshows I/P
+
+This is the code for the following shiny app: https://lucialayritz.shinyapps.io/TalkshowsIP/
 
 The app analyses the composition of talkshow guests discussing Israel/Palestine since Ocotber 7th in German talkshows.
 
