@@ -203,7 +203,7 @@ plot3 = function(start, end, df, variable, thresh = 2) {
 
 
 # Define UI ----
-ui <- fluidPage(#theme = shinytheme("flatly"),
+ui = fluidPage(#theme = shinytheme("flatly"),
                 tags$head(
                   tags$style(HTML(paste0("body {
                                    background-color: #f9f6ee; /* Set your desired background color */
@@ -219,8 +219,7 @@ ui <- fluidPage(#theme = shinytheme("flatly"),
       }
     ")))),
                   
-    titlePanel( "Wer sitzt in deutschen Talkshows zu Israel und Palästina?", 
-                p("p creates a paragraph of text.")
+    titlePanel( "Wer sitzt in deutschen Talkshows zu Israel und Palästina?"
     ),
     p("Für diese Analyse wurden alle Sendungen der Format 'Maybrit Illner', 'Anne Will' und 'Markus Lanz' 
                     seit dem 7. Oktober berücksichtigt, die sich mit Israel und Palästina beschäftigten.

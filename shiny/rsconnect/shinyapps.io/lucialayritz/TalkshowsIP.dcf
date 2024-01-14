@@ -1,0 +1,13 @@
+name: TalkshowsIP
+title: TalkshowsIP
+username: lucialayritz
+account: lucialayritz
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 10858873
+bundleId: 8143010
+url: https://lucialayritz.shinyapps.io/TalkshowsIP/
+version: 1
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: data/data.numbers

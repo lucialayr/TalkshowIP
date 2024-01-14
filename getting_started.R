@@ -9,6 +9,7 @@ library(shinythemes)
 library(tidyverse)
 library(plotly)
 library(scico)
+library(rsconnect)
 
 setwd("~//dataviz/TalkshowIP")
 
